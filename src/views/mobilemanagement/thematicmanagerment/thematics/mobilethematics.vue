@@ -1,0 +1,157 @@
+<template>
+  <div class="app-container">
+    <div class="filter-container">
+      <el-input placeholder="专题名称" v-model="listQuery.name" size="medium" style="width: 200px;"
+                class="filter-item"/>
+      <el-button class="filter-item" type="primary" size="medium" icon="el-icon-search" @click="handleFilter">搜索
+      </el-button>
+      <br/>
+      <el-button class="filter-item" size="medium" type="primary" icon="el-icon-plus" @click="dialogFormVisible = true">
+        创建模板
+      </el-button>
+    </div>
+
+    <el-table
+      :data="datas"
+      v-loading="listLoading"
+      border
+      fit
+      highlight-current-row
+    >
+      <el-table-column label="专题名称">
+        <template slot-scope="scope">{{ scope.row.name }}</template>
+      </el-table-column>
+      <el-table-column label="专题标题">
+        <template slot-scope="scope">{{ scope.row.title }}</template>
+      </el-table-column>
+      <el-table-column label="创建时间" min-width="160">
+        <template slot-scope="scope">{{ scope.row.createTime }}</template>
+      </el-table-column>
+      <el-table-column label="操作">
+        <template slot-scope="scope">
+          <router-link
+            :to="{path:'/mobilemanagement/mobilethematic/updatemobilethematic',query:{initId:scope.row.id}}">
+            <el-button type="primary" size="mini" style="margin: 0 5px 0 0">编辑</el-button>
+          </router-link>
+          <el-button size="mini" type="danger" style="margin: 0" @click="handleDelete(scope.row.id)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <div class="pagination-container">
+      <el-pagination background @size-change="handleSizeChange" @current-change="handleCurrentChange"
+                     :current-page="listQuery.pageNum+1" :page-sizes="[10,20,30,50]" :page-size="listQuery.pageSize"
+                     layout="total, sizes, prev, pager, next, jumper" :total="total">
+      </el-pagination>
+    </div>
+
+    <el-dialog title="选择模板" :visible.sync="dialogFormVisible" width="820px">
+      <div v-for="i in templateList" class="template_box clearfix" style="width: 218px; box-sizing: initial; display: inline-block!important;">
+        <img v-if="i.imgUrl !== ''" :src="i.imgUrl" width="218" height="290">
+        <div v-if="i.imgUrl === ''"
+             style="width: 218px; height: 290px; text-align: center; line-height: 256px; font-size: 18px; background: #ececec">
+          空白模板
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 10px">
+          <p style="line-height: 0.5; color: #666; margin: 14px 0">{{i.name}}</p>
+          <router-link
+            :to="{path:'/mobilemanagement/mobilethematic/addmobilethematic',query:{initId:i.value}}">
+            <el-button type="primary" size="mini" icon="el-icon-finished" style="height: 35px">使用此模板</el-button>
+          </router-link>
+        </div>
+      </div>
+    </el-dialog>
+
+  </div>
+</template>
+
+<script>
+
+  import {
+    queryMobileThematic,
+    deleteMobileThematic
+  } from '@/api/mobilethematics';
+
+  export default {
+    data() {
+      return {
+        isProcess: false,// 处理中标记
+        listLoading: true, // 列表加载标识
+        datas: null, // 列表数据集合
+        total: null, // 总记录数
+        listQuery: {
+          pageNum: 0, // 当前页码
+          pageSize: 10, // 每页显示记录数
+          name: '' // 专题名称
+        },
+        dialogFormVisible: false,
+        templateList: [
+          {
+            value: '0',
+            name: '空白模板',
+            imgUrl: ''
+          },
+          {
+            value: '4',
+            name: 'mobile专题模板',
+            imgUrl: require('@/assets/img/weixinTemplate1.jpg')
+          }
+        ]
+      }
+    },
+    created() {
+      this.getList()
+    },
+    methods: {
+      getList() {
+        this.listLoading = true;
+        queryMobileThematic(this.listQuery).then((response) => {
+          this.datas = response.data;
+          this.total = response.recordsTotal;
+          this.listLoading = false
+        })
+      },
+      // 改变当前页码
+      handleCurrentChange(val) {
+        this.listQuery.pageNum = val - 1;
+        this.getList();
+      },
+      // 改变每页显示记录数
+      handleSizeChange(val) {
+        this.listQuery.pageNum = 0;
+        this.listQuery.pageSize = val;
+        this.getList();
+      },
+      // 过滤查询
+      handleFilter() {
+        this.listQuery.pageNum = 0;
+        this.getList();
+      },
+      // 删除专题二次确认
+      handleDelete(id) {
+        this.$confirm('是否确认删除, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          this.delThematic(id);
+        })
+      },
+      // 删除专题
+      delThematic(id) {
+        if (this.isProcess) {
+          return;
+        }
+        this.isProcess = true;
+        deleteMobileThematic(id).then(() => {
+          this.isProcess = false;
+          this.getList();
+          this.$message({
+            type: 'success',
+            message: '删除成功!'
+          });
+        });
+      },
+    }
+  }
+</script>
